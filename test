@@ -1,0 +1,86 @@
+#Get Start Time
+Import-module ActiveDirectory
+$startDTM = (Get-Date)
+$timestamp=((Get-Date).ToString('dd_MM_yyyy_HH_mm'))
+$FolderName=((Get-Date).ToString('dd_MM_yyyy'))
+
+New-Item -ItemType directory -Path ""
+
+Get-ADUser -Filter * -Properties * |
+Select CN,Created,DistinguishedName,EmailAddress,ExtensionAttribute10,CannotChangePassword,Enabled,Deleted,AccountExpirationDate,LockedOut,AccountLockoutTime,BadLogonCount,LastBadPasswordAttempt,LastLogonDate,Modified,PasswordExpired,PasswordNeverExpires,PasswordNotRequired,PasswordLastSet |
+Export-Csv "" -Delimiter "|" -Encoding UTF8 -NoTypeInformation
+
+#$((Get-Date).ToString('dd_MM_yyyy_HH_mm'))
+#get End Time
+$endDTM = (get-date)
+
+#Echo Time Elapsed
+$TimeElapsedUsers = "Elapsed Time: $(($endDTM - $startDTM).Totalseconds) seconds"
+$TimeElapsedUsers > ""
+
+Write-Host ""
+Write-Host ""
+Write-Host "The export of all users is completed after $TimeElapsedUsers Seconds"
+Write-Host ""
+Write-Host ""
+
+function Get-ADUserGroups{
+	#$Domain = ''
+	$users= Get-AdUser -Filter * -Properties SamAccountName, DisplayName, Description -ResultPageSize 500 |
+    select SamAccountName, DisplayName, Description
+	$users|
+	    ForEach-Object{
+		$p=[ordered]@{
+			#Domain=$Domain
+            #Type=$null
+            #DistinguishedName=$null
+			#ManagedBy=$null
+			#Members=$_.DistinguishedName
+            #DisplayName=$_.DisplayName
+            UserName=$_.SamAccountName
+            FullName=$_.DisplayName
+            User_Description=$_.Description			
+            GroupName=$null			
+			Group_Description=$null			
+	        }
+	        Get-ADPrincipalGroupMembership $_.SamAccountName | 
+	            ForEach-Object{
+	                $p.GroupName=$_.Name
+			        #$p.Type=$_.GroupCategory
+			        #$p.DistinguishedName=$_.DistinguishedName
+			Get-ADGroup $_ -Properties description |
+				ForEach-Object{
+					$p.Group_Description=$_.Description
+					#$p.ManagedBy=$_.ManagedBy
+	                New-Object PsObject -Property $p
+				    }
+	            }
+	    }
+}
+
+#Get Start Time
+
+$startDTM = (Get-Date)
+Get-ADUserGroups | 
+Export-Csv -Path "" -Delimiter "|" -Encoding UTF8 -NoTypeInformation
+
+#Get End Time
+
+$endDTM = (get-date)
+
+#Echo Time Elapsed
+
+"Elapsed Time: $(($endDTM - $startDTM).Totalseconds) seconds"
+
+$TimeElapsedGroup = "Elapsed Time: $(($endDTM - $startDTM).Totalseconds) seconds"
+$TimeElapsedGroup > ""
+
+Write-Host ""
+Write-Host ""
+Write-Host "The export of all groups is completed after $TimeElapsedGroup Seconds"
+Write-Host ""
+Write-Host ""
+
+# Get user count as number
+$users_count = (Get-ADUser -Filter * -SearchBase "DC=,DC=,DC=").Count | 
+out-file -filepath "" -Encoding UTF8
